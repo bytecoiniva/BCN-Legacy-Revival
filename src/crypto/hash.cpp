@@ -1,9 +1,12 @@
 // Copyright (c) 2012-2018, The CryptoNote developers, The Bytecoin developers.
+// Copyright (c) 2026, Bytecoin Legacy Developers.
 // Licensed under the GNU Lesser General Public License. See LICENSE for details.
 
 #include <assert.h>
 #include <algorithm>
 #include <new>
+#include <vector>      // <--- AÑADIDO
+#include <stdexcept>  // <--- AÑADIDO PARA logic_error y runtime_error
 
 #include "crypto.hpp"  // KeccakStream
 #include "hash.hpp"
@@ -38,12 +41,15 @@ CryptoNightContext::~CryptoNightContext() {
 
 CryptoNightContext::CryptoNightContext() {
 #if !defined(__APPLE__)
+	// Agregamos MAP_ANONYMOUS para Linux moderno
 	data = mmap(nullptr, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE, -1, 0);
 #else
 	data = mmap(nullptr, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 #endif
 	if (data == MAP_FAILED)
 		throw std::bad_alloc();
+	
+	// Bloqueamos la memoria para evitar que el sistema la mande al swap (mejora el hash)
 	mlock(data, MAP_SIZE);
 }
 
@@ -94,14 +100,14 @@ Hash fill_merge_mining_branches(MergeMiningItem items[], size_t count) {
 		pitems[i] = items + i;
 	size_t max_depth = get_merge_mining_depth(pitems, 0);
 	Hash result      = fill_merge_mining_branches(pitems, 0, max_depth);
-	for (size_t i = 0; i != count; ++i)  // We push_back instead of insert(begin, ) for speed
+	for (size_t i = 0; i != count; ++i)  // Revertimos para mantener orden correcto
 		std::reverse(pitems[i]->branch.begin(), pitems[i]->branch.end());
 	return result;
 }
 
 static Hash fill_cm_branches(const std::vector<CMTreeItem *> &pitems, size_t depth) {
 	if (depth >= 256)
-		throw std::logic_error("fill_cm_branches same currency ids");  // "Same currency ids"
+		throw std::logic_error("fill_cm_branches same currency ids");
 	if (pitems.size() == 1)
 		return pitems.at(0)->leaf;
 	std::vector<CMTreeItem *> halves[2];
@@ -134,7 +140,7 @@ Hash fill_cm_branches(CMTreeItem items[], size_t count) {
 	for (size_t i = 0; i != count; ++i)
 		pitems[i] = items + i;
 	Hash result = fill_cm_branches(pitems, 0);
-	for (size_t i = 0; i != count; ++i)  // We push_back instead of insert(begin, ) for speed
+	for (size_t i = 0; i != count; ++i)
 		std::reverse(pitems[i]->branch.begin(), pitems[i]->branch.end());
 	return result;
 }
