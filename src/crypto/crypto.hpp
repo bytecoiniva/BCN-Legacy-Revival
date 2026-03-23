@@ -1,4 +1,5 @@
 // Copyright (c) 2012-2018, The CryptoNote developers, The Bytecoin developers.
+// Copyright (c) 2026, Bytecoin Legacy Developers.
 // Licensed under the GNU Lesser General Public License. See LICENSE for details.
 
 #pragma once
@@ -8,6 +9,8 @@
 #include <mutex>
 #include <type_traits>
 #include <vector>
+#include <string>     // <--- AÑADIDO PARA std::string
+#include <stdexcept> // <--- AÑADIDO PARA std::logic_error
 
 #include "random.h"
 #include "types.hpp"
